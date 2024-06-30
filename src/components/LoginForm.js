@@ -13,11 +13,13 @@ const LoginForm = ({onsubmit}) =>{
     return (
 
         <form onsubmit={handleSubmit}>
-
+            <body bgcolor='red' >
+            <label>username     </label>
             <input type="text" placeholder="Enter NAme" value={username}
             onChange ={(e)=> setusername(e.target.value)}/>
+            <br></br>
             <button type="submit">Login</button>
-
+            </body>
 
         </form>
 
