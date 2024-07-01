@@ -1,15 +1,23 @@
-import logo from './logo.svg';
-import './App.css';
-import LoginForm from './components/LoginForm';
+import React, { useState, useEffect } from 'react';
 import Tree from './components/Tree';
+import generateData from './components/data';
 
-function App() {
+
+const App = () => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    // Simulate fetching data (replace with actual fetch call if using a server)
+    const fetchedData = generateData();
+    setData(fetchedData);
+  }, []);
+
   return (
-    <div className="App">
-      
-      <Tree></Tree>
+    <div>
+      <h1>Tree Visualization</h1>
+      {data ? <Tree data={data} /> : <p>Loading...</p>}
     </div>
   );
-}
+};
 
 export default App;

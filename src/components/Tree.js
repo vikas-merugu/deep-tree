@@ -1,66 +1,97 @@
-import React from "react";
-import { useState } from "react";
-import TreeNode from "./TreeNode";
+import React, { useEffect, useRef, useState } from 'react';
+import * as d3 from 'd3';
 
+const Tree = ({ data }) => {
+  const svgRef = useRef();
+  const [root, setRoot] = useState(null);
 
-const Tree = ({ depth }) => {
-    const [tree, setTree] = useState(() => createTree(depth));
+  useEffect(() => {
+    if (data) {
+      const width = 960;
+      const height = 500;
 
-    
-    function createTree(maxDepth) {
-        function createNode(value) {
-            return {
-                value: value,
-                children: [],
-            };
-        }
+      const svg = d3.select(svgRef.current)
+        .attr('width', width)
+        .attr('height', height)
+        .append('g')
+        .attr('transform', 'translate(40,0)');
 
-        const root = createNode(1); 
-        const nodes = [root]; 
+      const treeLayout = d3.tree()
+        .size([height, width - 160]);
 
-        for (let currentDepth = 1; currentDepth < maxDepth; currentDepth++) {
-            const levelSize = nodes.length; 
-            for (let i = 0; i < levelSize; i++) {
-                const node = nodes.shift(); 
-                const leftChild = createNode(1);
-                const rightChild = createNode(1);
-                node.children.push(leftChild, rightChild);
-                nodes.push(leftChild, rightChild); 
+      const hierarchyData = d3.hierarchy(data);
+      treeLayout(hierarchyData);
+
+      setRoot(hierarchyData);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (root) {
+      const updateTree = () => {
+        const svg = d3.select(svgRef.current).select('g');
+
+        const nodes = root.descendants();
+        const links = root.links();
+
+        // Nodes
+        const node = svg.selectAll('g.node')
+          .data(nodes, d => d.data.name);
+
+        const nodeEnter = node.enter().append('g')
+          .attr('class', 'node')
+          .attr('transform', d => `translate(${d.y},${d.x})`)
+          .on('click', d => {
+            // Toggle children on click
+            if (d.children) {
+              d._children = d.children;
+              d.children = null;
+            } else {
+              d.children = d._children;
+              d._children = null;
             }
-        }
+            updateTree();
+          });
 
-        return root; 
+        nodeEnter.append('circle')
+          .attr('r', 6)
+          .style('fill', d => d._children ? 'lightsteelblue' : '#fff');
+
+        nodeEnter.append('text')
+          .attr('dy', '0.31em')
+          .attr('x', d => d.children ? -10 : 10)
+          .attr('text-anchor', d => d.children ? 'end' : 'start')
+          .text(d => d.data.name);
+
+        const nodeUpdate = nodeEnter.merge(node)
+          .transition()
+          .duration(500)
+          .attr('transform', d => `translate(${d.y},${d.x})`);
+
+        nodeUpdate.select('circle')
+          .style('fill', d => d._children ? 'lightsteelblue' : '#fff');
+
+        node.exit().remove();
+
+        // Links
+        svg.selectAll('path.link')
+          .data(links, d => d.target.data.name)
+          .enter().insert('path', 'g')
+          .attr('class', 'link')
+          .attr('d', d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x))
+          .attr('fill', 'none')
+          .attr('stroke', '#ccc');
+      };
+
+      updateTree();
     }
+  }, [root]);
 
-    const handleNodeClick = (clickedNode) => {
-        const newValue = prompt('Enter new value:', clickedNode.value);
-        if (newValue !== null) {
-            updateNodeValue(tree, clickedNode, newValue);
-            setTree({ ...tree }); 
-        }
-    };
-
-   
-    function updateNodeValue(root, targetNode, newValue) {
-        if (root === targetNode) {
-            root.value = newValue;
-        } else {
-            root.children.forEach((child) => {
-                if (child === targetNode) {
-                    child.value = newValue;
-                } else {
-                    updateNodeValue(child, targetNode, newValue);
-                }
-            });
-        }
-    }
-
-    return (
-        <div>
-            <h2>Tree Structure</h2>
-            <TreeNode node={tree} onNodeClick={handleNodeClick} />
-        </div>
-    );
+  return (
+    <svg ref={svgRef}></svg>
+  );
 };
 
 export default Tree;
